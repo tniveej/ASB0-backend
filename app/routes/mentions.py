@@ -8,6 +8,7 @@ from app.db.supabase_client import (
 )
 from app.models.schemas import StatusUpdate
 from app.services.postprocess_locations import postprocess_locations
+from app.services.cleanup_service import clean_mentions_with_llm
 
 router = APIRouter(prefix="/health-mentions", tags=["health-mentions"])
 
@@ -51,6 +52,15 @@ def put_health_mention_status(mention_id: str, payload: StatusUpdate):
 def run_postprocess_locations(limit: int = 50):
     try:
         result = postprocess_locations(limit=limit)
+        return result
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post("/clean-metadata")
+def run_clean_metadata(limit: int = 50):
+    try:
+        result = clean_mentions_with_llm(limit=limit)
         return result
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=str(exc)) from exc
