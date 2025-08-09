@@ -8,6 +8,8 @@ from app.config import get_settings
 from app.db.supabase_client import list_keywords, upsert_mention
 from app.scrapers.rss_scraper import fetch_rss_entries, infer_outlet_from_link
 from app.services.exa_service import search_recent_mentions, enrich_with_exa_contents
+from app.llm.health_classifier import classify_batch
+from app.llm.summarizer import summarize_batch
 from app.scrapers.location_extractor import extract_location
 from app.llm.location_llm import extract_location_with_llm
 
@@ -26,7 +28,24 @@ def scrape_news():
     inserted: List[dict] = []
     for feed_url in settings.rss_feeds:
         entries = fetch_rss_entries(feed_url)
-        for item in entries:
+        # Batch classify health relevance to reduce LLM calls
+        batch_payload = [
+            {"title": e.get("title") or "", "summary": e.get("summary") or ""}
+            for e in entries
+        ]
+        batch_flags = classify_batch(batch_payload)
+        # Prepare texts for summarization in parallel
+        summaries = summarize_batch(
+            [
+                {
+                    "title": e.get("title") or "",
+                    "text": " ".join([e.get("title") or "", e.get("summary") or ""]),
+                }
+                for e in entries
+            ]
+        )
+
+        for (item, health_ok, llm_summary) in zip(entries, batch_flags, summaries):
             text_for_match = " ".join(
                 [
                     item.get("title") or "",
@@ -36,7 +55,7 @@ def scrape_news():
             matched_keywords = [
                 keyword for keyword in active_keywords if keyword.lower() in text_for_match
             ]
-            if matched_keywords:
+            if matched_keywords and health_ok is True:
                 # Map scraped item to DB schema
                 date_value = (
                     item.get("published_date") or datetime.utcnow().date().isoformat()
@@ -55,7 +74,7 @@ def scrape_news():
                     "date": date_value,
                     "data_source": "News Outlet",
                     "headline": item.get("title") or "",
-                    "summary": item.get("summary"),
+                    "summary": llm_summary or item.get("summary"),
                     "image_url": item.get("image_url"),
                     "link": item.get("link"),
                     "media_type": "news article",

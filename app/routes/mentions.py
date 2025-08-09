@@ -8,6 +8,8 @@ from app.db.supabase_client import (
 )
 from app.models.schemas import StatusUpdate
 from app.services.cleanup_service import clean_mentions_with_llm
+from app.services.faker_service import generate_fake_mentions
+from app.db.supabase_client import upsert_mention
 
 router = APIRouter(prefix="/health-mentions", tags=["health-mentions"])
 
@@ -52,6 +54,24 @@ def run_clean_metadata(limit: int = 50):
     try:
         result = clean_mentions_with_llm(limit=limit)
         return result
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post("/fake-mentions")
+def create_fake_mentions(count: int = 5):
+    try:
+        from app.db.supabase_client import list_keywords as _lk
+
+        allowed = [k["keyword"] for k in _lk()]
+        items = generate_fake_mentions(count, allowed)
+        inserted = []
+        for it in items:
+            try:
+                inserted.append(upsert_mention(it))
+            except Exception:
+                continue
+        return {"generated": len(items), "inserted": len(inserted), "items": inserted}
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
