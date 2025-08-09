@@ -85,14 +85,15 @@ class Settings(BaseModel):
     exa_social_domains: list[str] = [
         "twitter.com",
         "x.com",
-        "youtube.com",
-        "www.youtube.com",
-        "instagram.com",
-        "www.instagram.com",
-        "tiktok.com",
-        "www.tiktok.com",
-        "facebook.com",
-        "m.facebook.com",
+        "mobile.twitter.com",
+        "www.twitter.com",
+    ]
+    # Explicit X-only list for Exa queries limited to X/Twitter
+    exa_x_domains: list[str] = [
+        "x.com",
+        "twitter.com",
+        "mobile.twitter.com",
+        "www.twitter.com",
     ]
 
 

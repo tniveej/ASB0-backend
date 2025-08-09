@@ -7,6 +7,7 @@ from app.db.supabase_client import (
     update_mention_status,
 )
 from app.models.schemas import StatusUpdate
+from app.services.postprocess_locations import postprocess_locations
 
 router = APIRouter(prefix="/health-mentions", tags=["health-mentions"])
 
@@ -44,5 +45,14 @@ def put_health_mention_status(mention_id: str, payload: StatusUpdate):
         return update_mention_status(mention_id, payload.status)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/postprocess-locations")
+def run_postprocess_locations(limit: int = 50):
+    try:
+        result = postprocess_locations(limit=limit)
+        return result
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
