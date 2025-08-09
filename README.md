@@ -166,8 +166,8 @@ Base URL: `http://localhost:8000`
 ### News Scraping & Ingestion
 
 - POST `/scrape-news`
-  - Triggers background RSS scraping for configured outlets using active keywords.
-  - Response: `{ "message": "scrape started" }`
+  - Triggers RSS scraping for configured outlets using active keywords.
+  - Response: `{ "message": "scrape completed", "inserted": N }`
 
 ### Social Media Data Ingestion
 
@@ -199,23 +199,14 @@ List keywords:
 curl http://localhost:8000/keywords
 ```
 
-Trigger scraping:
+Trigger RSS scraping:
 ```
 curl -X POST http://localhost:8000/scrape-news
 ```
 
-Ingest social media (mock):
+Ingest Exa search results (news + optional social domains):
 ```
-curl -X POST http://localhost:8000/ingest-social-media -H 'Content-Type: application/json' -d '{
-  "date":"2025-08-01",
-  "headline":"Dengue outbreak concern in PJ",
-  "summary":"Multiple reports of dengue cases in several neighborhoods.",
-  "image_url":null,
-  "link":"https://social.example/post/123",
-  "keywords":["dengue","Petaling Jaya"],
-  "engagement":120,
-  "media_name":"X (Twitter)"
-}'
+curl -X POST 'http://localhost:8000/ingest-exa?max_results=10&include_social=true'
 ```
 
 Fetch mentions:

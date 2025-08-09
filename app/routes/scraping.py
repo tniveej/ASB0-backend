@@ -7,9 +7,9 @@ from fastapi import APIRouter
 from app.config import get_settings
 from app.db.supabase_client import list_keywords, upsert_mention
 from app.scrapers.rss_scraper import fetch_rss_entries, infer_outlet_from_link
+from app.services.exa_service import search_recent_mentions, enrich_with_exa_contents
 from app.scrapers.location_extractor import extract_location
 from app.llm.location_llm import extract_location_with_llm
-from app.services.exa_service import search_recent_mentions
 
 
 logger = logging.getLogger(__name__)
@@ -75,23 +75,17 @@ def scrape_news():
     return {"message": "scrape completed", "inserted": len(inserted)}
 
 
-@router.get("/search-exa")
-def search_exa(max_results: int = 10, x_only: bool = False):
-    active_keywords = [k["keyword"] for k in list_keywords()]
-    if not active_keywords:
-        return {"items": [], "keywords": []}
-    results = search_recent_mentions(active_keywords, max_results=max_results, x_only=x_only)
-    return {"items": results, "keywords": active_keywords}
 
 
 @router.post("/ingest-exa")
-def ingest_exa(max_results: int = 10, x_only: bool = False):
+def ingest_exa(max_results: int = 10, include_social: bool = True):
     active_keywords = [k["keyword"] for k in list_keywords()]
     if not active_keywords:
         return {"message": "no active keywords"}
-    results = search_recent_mentions(active_keywords, max_results=max_results, x_only=x_only)
+    results = search_recent_mentions(active_keywords, max_results=max_results, include_social=include_social)
     inserted = 0
-    for item in results:
+    enriched = enrich_with_exa_contents(results)
+    for idx, item in enumerate(results):
         title = item.get("title")
         url = item.get("url")
         published = item.get("published")
@@ -104,23 +98,25 @@ def ingest_exa(max_results: int = 10, x_only: bool = False):
         except Exception:
             date_value = datetime.utcnow().date().isoformat()
 
-        # location extraction
-        location = extract_location(title or "")
+        # pre-enriched fields
+        pre = next((e for e in enriched if e.get("link") == url), {})
+        # location extraction (prefer enriched)
+        location = pre.get("location")
         if not location:
-            location = extract_location_with_llm(title or "", "")
+            location = extract_location(title or "") or extract_location_with_llm(title or "", pre.get("summary") or "")
 
         record = {
             "date": date_value,
             "data_source": "Web Search",
-            "headline": title or "",
-            "summary": None,
+            "headline": pre.get("headline") or title or "",
+            "summary": pre.get("summary") or None,
             "image_url": None,
             "link": url,
             "media_type": "web article",
-            "media_outlet": infer_outlet_from_link(url) if url else None,
-            "media_name": infer_outlet_from_link(url) if url else None,
+            "media_outlet": infer_outlet_from_link(url) if url else pre.get("media_name"),
+            "media_name": pre.get("media_name") or infer_outlet_from_link(url),
             "status": "unverified",
-            "keywords": active_keywords,
+            "keywords": pre.get("keywords") or active_keywords,
             "engagement": 0,
             "location": location,
         }

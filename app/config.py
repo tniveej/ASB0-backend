@@ -70,17 +70,22 @@ class Settings(BaseModel):
     # Exa Search
     exa_api_key: str | None = None
     exa_recent_days: int = 7
+    # Malaysia news domains only (curated)
     exa_news_domains: list[str] = [
-        "www.malaymail.com",
-        "www.thestar.com.my",
-        "www.nst.com.my",
-        "www.bernama.com",
-        "www.freemalaysiatoday.com",
-        "www.theedgemalaysia.com",
-        "www.theborneopost.com",
-        "www.dailyexpress.com.my",
-        "www.malaysiakini.com",
-        "www.straitstimes.com",
+        # National agencies / English
+        "bernama.com", "www.bernama.com",
+        "thestar.com.my", "www.thestar.com.my",
+        "malaymail.com", "www.malaymail.com",
+        "nst.com.my", "www.nst.com.my",
+        "freemalaysiatoday.com", "www.freemalaysiatoday.com",
+        "theedgemalaysia.com", "www.theedgemalaysia.com",
+        "theborneopost.com", "www.theborneopost.com",
+        "dailyexpress.com.my", "www.dailyexpress.com.my",
+        "malaysiakini.com", "www.malaysiakini.com",
+        # Bahasa Malaysia outlets
+        "utusan.com.my", "www.utusan.com.my",
+        "harianmetro.com.my", "www.harianmetro.com.my",
+        "kosmo.com.my", "www.kosmo.com.my",
     ]
     exa_social_domains: list[str] = [
         "twitter.com",
@@ -94,6 +99,30 @@ class Settings(BaseModel):
         "twitter.com",
         "mobile.twitter.com",
         "www.twitter.com",
+    ]
+
+    # Broader social platforms (global) – used when source="social" or "both"
+    exa_social_domains_all: list[str] = [
+        # X/Twitter
+        "x.com", "twitter.com", "mobile.twitter.com", "www.twitter.com",
+        # Reddit
+        "reddit.com", "www.reddit.com",
+        # Facebook
+        "facebook.com", "m.facebook.com", "www.facebook.com",
+        # Instagram
+        "instagram.com", "www.instagram.com",
+        # TikTok
+        "tiktok.com", "www.tiktok.com",
+    ]
+
+    # Exclude domains that are generally not needed in ingestion (can be expanded)
+    exa_exclude_domains: list[str] = [
+        "wikipedia.org",
+        "en.wikipedia.org",
+        "www.wikipedia.org",
+        "youtube.com",
+        "www.youtube.com",
+        "youtu.be",
     ]
 
 
