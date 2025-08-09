@@ -23,7 +23,7 @@ def _get_attr(obj: Any, *names: str) -> Any:
     return None
 
 
-def search_recent_mentions(keywords: List[str], max_results: int = 10) -> List[Dict]:
+def search_recent_mentions(keywords: List[str], max_results: int = 10, x_only: bool = False) -> List[Dict]:
     """Search Exa for recent Malaysian mentions of provided keywords.
     Restrict to recent content and preferred domains (news + social).
     """
@@ -36,7 +36,9 @@ def search_recent_mentions(keywords: List[str], max_results: int = 10) -> List[D
     # Date filter
     start_date = (datetime.utcnow() - timedelta(days=settings.exa_recent_days)).isoformat()
 
-    include_domains = list({*settings.exa_news_domains, *settings.exa_social_domains})
+    include_domains = (
+        settings.exa_x_domains if x_only else list({*settings.exa_news_domains, *settings.exa_social_domains})
+    )
 
     resp = exa.search(
         query=query,

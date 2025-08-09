@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 from app.logging_config import setup_logging
 from app.routes.keywords import router as keywords_router
 from app.routes.mentions import router as mentions_router
-from app.routes.ingestion import router as ingestion_router
 from app.routes.scraping import router as scraping_router
 from app.scheduler import start_scheduler, shutdown_scheduler
 
@@ -26,7 +25,6 @@ app.add_middleware(
 
 app.include_router(keywords_router)
 app.include_router(mentions_router)
-app.include_router(ingestion_router)
 app.include_router(scraping_router)
 
 

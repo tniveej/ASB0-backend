@@ -13,16 +13,7 @@ class Keyword(BaseModel):
     is_active: bool
 
 
-class SocialMediaIngest(BaseModel):
-    date: date
-    headline: Optional[str] = None
-    summary: Optional[str] = None
-    image_url: Optional[HttpUrl] = None
-    link: HttpUrl
-    media_name: Optional[str] = None
-    keywords: Optional[List[str]] = None
-    engagement: Optional[int] = 0
-    location_hint: Optional[str] = None
+# Removed SocialMediaIngest as social ingestion is no longer used
 
 
 class HealthMention(BaseModel):

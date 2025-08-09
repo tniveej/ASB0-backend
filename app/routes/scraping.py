@@ -76,20 +76,20 @@ def scrape_news():
 
 
 @router.get("/search-exa")
-def search_exa(max_results: int = 10):
+def search_exa(max_results: int = 10, x_only: bool = False):
     active_keywords = [k["keyword"] for k in list_keywords()]
     if not active_keywords:
         return {"items": [], "keywords": []}
-    results = search_recent_mentions(active_keywords, max_results=max_results)
+    results = search_recent_mentions(active_keywords, max_results=max_results, x_only=x_only)
     return {"items": results, "keywords": active_keywords}
 
 
 @router.post("/ingest-exa")
-def ingest_exa(max_results: int = 10):
+def ingest_exa(max_results: int = 10, x_only: bool = False):
     active_keywords = [k["keyword"] for k in list_keywords()]
     if not active_keywords:
         return {"message": "no active keywords"}
-    results = search_recent_mentions(active_keywords, max_results=max_results)
+    results = search_recent_mentions(active_keywords, max_results=max_results, x_only=x_only)
     inserted = 0
     for item in results:
         title = item.get("title")

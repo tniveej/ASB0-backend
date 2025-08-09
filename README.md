@@ -38,7 +38,7 @@ ASB0-backend/
       __init__.py
       keywords.py
       mentions.py
-      ingestion.py
+      # ingestion.py (removed)
       scraping.py
     scrapers/
       __init__.py
@@ -169,23 +169,9 @@ Base URL: `http://localhost:8000`
   - Triggers background RSS scraping for configured outlets using active keywords.
   - Response: `{ "message": "scrape started" }`
 
-### Social Media Data Ingestion (Mocked)
+### Social Media Data Ingestion
 
-- POST `/ingest-social-media`
-  - Body example:
-    ```json
-    {
-      "date": "2025-08-01",
-      "headline": "Dengue outbreak concern in PJ",
-      "summary": "Multiple reports of dengue cases in several neighborhoods.",
-      "image_url": null,
-      "link": "https://social.example/post/123",
-      "keywords": ["dengue", "Petaling Jaya"],
-      "engagement": 120,
-      "media_name": "X (Twitter)"
-    }
-    ```
-  - Response: inserted health mention
+Removed for now to focus on RSS and Exa-based ingestion. 
 
 ### Health Mentions Retrieval
 
