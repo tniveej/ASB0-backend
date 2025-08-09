@@ -61,11 +61,28 @@ class Settings(BaseModel):
         "Selangor", "Terengganu", "Kuala Lumpur", "Labuan", "Putrajaya",
     ]
 
+    # OpenRouter (OpenAI-compatible) LLM settings
+    openrouter_api_key: str | None = None
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    openrouter_model: str = "openai/gpt-4o-mini"
+    enable_llm_location: bool = True
+
+    # Exa Search
+    exa_api_key: str | None = None
+
 
 
 def get_settings() -> Settings:
     url = os.getenv("SUPABASE_URL", "")
     key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-    return Settings(supabase_url=url, supabase_service_role_key=key)
+    return Settings(
+        supabase_url=url,
+        supabase_service_role_key=key,
+        openrouter_api_key=os.getenv("OPENROUTER_API_KEY"),
+        openrouter_base_url=os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
+        openrouter_model=os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini"),
+        enable_llm_location=os.getenv("ENABLE_LLM_LOCATION", "true").lower() in {"1", "true", "yes"},
+        exa_api_key=os.getenv("EXA_API_KEY"),
+    )
 
 

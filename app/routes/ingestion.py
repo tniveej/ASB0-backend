@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from app.db.supabase_client import upsert_mention
 from app.models.schemas import SocialMediaIngest
 from app.scrapers.location_extractor import extract_location
+from app.llm.location_llm import extract_location_with_llm
 
 
 router = APIRouter(tags=["ingestion"])
@@ -18,6 +19,8 @@ def ingest_social_media(payload: SocialMediaIngest):
             )
         )
         location = extract_location(location_text)
+        if not location:
+            location = extract_location_with_llm(payload.headline or "", payload.summary or "")
 
         record = {
             "date": payload.date.isoformat(),
