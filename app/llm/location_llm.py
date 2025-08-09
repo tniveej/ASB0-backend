@@ -9,41 +9,10 @@ from app.location.locations import normalize_location
 
 
 SYSTEM_PROMPT = """
-
-You are a data extraction assistant. Given Malaysian news text, extract the precise state and district in Malaysia that the text most likely refers to.\n"
-"Respond in STRICT JSON with keys: state, district. Use official Malaysian state and district names. If unknown, use null. Example : 
-
-    [
-  {
-    "state": "Selangor",
-    "district": "Petaling"
-  },
-  {
-    "state": "Johor",
-    "district": "Johor Bahru"
-  },
-  {
-    "state": "Pulau Pinang",
-    "district": "Timur Laut"
-  },
-  {
-    "state": "Sabah",
-    "district": "Kota Kinabalu"
-  },
-  {
-    "state": "Sarawak",
-    "district": "Kuching"
-  },
-  {
-    "state": "Negeri Sembilan",
-    "district": null
-  },
-  {
-    "state": null,
-    "district": null
-  }
-]
-
+You are a data extraction assistant. Given Malaysian news text, extract the precise state and district in Malaysia that the text most likely refers to.
+Respond in STRICT JSON with keys: state, district. Use official Malaysian state and district names. If unknown, use null.
+Examples of valid JSON outputs:
+[{"state": "Selangor", "district": "Petaling"}, {"state": "Johor", "district": "Johor Bahru"}, {"state": null, "district": null}]
 """
 
 def extract_location_with_llm(title: str, summary: str) -> Optional[Dict[str, str]]:
@@ -55,7 +24,7 @@ def extract_location_with_llm(title: str, summary: str) -> Optional[Dict[str, st
     user_prompt = (
         f"Title: {title or ''}\n\n"
         f"Summary: {summary or ''}\n\n"
-        "Return JSON only."
+        "Return JSON only. If multiple plausible locations are mentioned, choose the most specific Malaysian state and district that best match the text."
     )
 
     completion = client.chat.completions.create(
@@ -64,12 +33,17 @@ def extract_location_with_llm(title: str, summary: str) -> Optional[Dict[str, st
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt},
         ],
-        temperature=0.2,
+        temperature=0.1,
     )
 
     content = completion.choices[0].message.content.strip()
+    cleaned = content.strip()
+    if cleaned.startswith("```"):
+        cleaned = cleaned.strip("` ")
+        if cleaned.startswith("json"):
+            cleaned = cleaned[4:].strip()
     try:
-        data = json.loads(content)
+        data = json.loads(cleaned)
     except Exception:
         return None
 

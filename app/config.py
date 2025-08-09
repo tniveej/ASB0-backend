@@ -69,6 +69,31 @@ class Settings(BaseModel):
 
     # Exa Search
     exa_api_key: str | None = None
+    exa_recent_days: int = 7
+    exa_news_domains: list[str] = [
+        "www.malaymail.com",
+        "www.thestar.com.my",
+        "www.nst.com.my",
+        "www.bernama.com",
+        "www.freemalaysiatoday.com",
+        "www.theedgemalaysia.com",
+        "www.theborneopost.com",
+        "www.dailyexpress.com.my",
+        "www.malaysiakini.com",
+        "www.straitstimes.com",
+    ]
+    exa_social_domains: list[str] = [
+        "twitter.com",
+        "x.com",
+        "youtube.com",
+        "www.youtube.com",
+        "instagram.com",
+        "www.instagram.com",
+        "tiktok.com",
+        "www.tiktok.com",
+        "facebook.com",
+        "m.facebook.com",
+    ]
 
 
 
@@ -83,6 +108,7 @@ def get_settings() -> Settings:
         openrouter_model=os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini"),
         enable_llm_location=os.getenv("ENABLE_LLM_LOCATION", "true").lower() in {"1", "true", "yes"},
         exa_api_key=os.getenv("EXA_API_KEY"),
+        exa_recent_days=int(os.getenv("EXA_RECENT_DAYS", "7")),
     )
 
 

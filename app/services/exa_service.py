@@ -4,6 +4,7 @@ from typing import List, Dict, Any
 from exa_py import Exa
 
 from app.config import get_settings
+from datetime import datetime, timedelta
 
 
 def get_exa_client() -> Exa:
@@ -24,14 +25,26 @@ def _get_attr(obj: Any, *names: str) -> Any:
 
 def search_recent_mentions(keywords: List[str], max_results: int = 10) -> List[Dict]:
     """Search Exa for recent Malaysian mentions of provided keywords.
-    Uses a simple OR query across keywords and biases to Malaysia by including country term.
+    Restrict to recent content and preferred domains (news + social).
     """
     exa = get_exa_client()
     if not keywords:
         return []
-    query = " OR ".join(keywords) + " Malaysia"
-    # Basic recent search; Exa supports advanced params; keep minimal here
-    resp = exa.search(query=query, num_results=max_results)
+    settings = get_settings()
+    query = " OR ".join(f'"{k}"' for k in keywords) + " Malaysia"
+
+    # Date filter
+    start_date = (datetime.utcnow() - timedelta(days=settings.exa_recent_days)).isoformat()
+
+    include_domains = list({*settings.exa_news_domains, *settings.exa_social_domains})
+
+    resp = exa.search(
+        query=query,
+        num_results=max_results,
+        start_published_date=start_date,
+        include_domains=include_domains,
+        use_autoprompt=True,
+    )
     # Exa returns a SearchResponse with a `.results` list
     raw_results = _get_attr(resp, "results") or []
     # If SDK version returns dict, handle that too
