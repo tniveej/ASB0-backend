@@ -20,23 +20,33 @@ def extract_location_with_llm(title: str, summary: str) -> Optional[Dict[str, st
     if not settings.enable_llm_location:
         return None
 
-    client = get_openrouter_client()
     user_prompt = (
         f"Title: {title or ''}\n\n"
         f"Summary: {summary or ''}\n\n"
         "Return JSON only. If multiple plausible locations are mentioned, choose the most specific Malaysian state and district that best match the text."
     )
 
-    completion = client.chat.completions.create(
-        model=settings.openrouter_model,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_prompt},
-        ],
-        temperature=0.1,
-    )
-
-    content = completion.choices[0].message.content.strip()
+    # Defensive call with guards; return None on any failure
+    try:
+        client = get_openrouter_client()
+        completion = client.chat.completions.create(
+            model=settings.openrouter_model,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.1,
+        )
+        if not completion or not getattr(completion, "choices", None):
+            return None
+        first = completion.choices[0]
+        message = getattr(first, "message", None)
+        content = getattr(message, "content", None)
+        if not content:
+            return None
+        content = content.strip()
+    except Exception:
+        return None
     cleaned = content.strip()
     if cleaned.startswith("```"):
         cleaned = cleaned.strip("` ")

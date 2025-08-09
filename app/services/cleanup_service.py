@@ -83,19 +83,23 @@ def _fill_defaults(url: str, guess: Dict, allowed_keywords: List[str], text: str
     if not kw or kw not in allowed_keywords:
         guess["keyword"] = allowed_keywords[0] if allowed_keywords else "general"
 
-    # normalize location
+    # normalize location; if none provided, fallback to general 'Malaysia'
     state = guess.get("state")
     district = guess.get("district")
     n_state, n_district = normalize_location(state, district)
-    guess["state"] = n_state or (list(MALAYSIA_DISTRICTS.keys())[0])
-    if n_state and not n_district and MALAYSIA_DISTRICTS.get(n_state):
-        guess["district"] = MALAYSIA_DISTRICTS[n_state][0]
-    elif n_district:
-        guess["district"] = n_district
+    if not n_state and not n_district:
+        guess["state"] = "Malaysia"
+        guess["district"] = None
     else:
-        # pick a default district for the chosen/default state
-        default_state = guess["state"]
-        guess["district"] = (MALAYSIA_DISTRICTS[default_state][0]) if MALAYSIA_DISTRICTS.get(default_state) else None
+        guess["state"] = n_state or (list(MALAYSIA_DISTRICTS.keys())[0])
+        if n_state and not n_district and MALAYSIA_DISTRICTS.get(n_state):
+            guess["district"] = MALAYSIA_DISTRICTS[n_state][0]
+        elif n_district:
+            guess["district"] = n_district
+        else:
+            # pick a default district for the chosen/default state
+            default_state = guess["state"]
+            guess["district"] = (MALAYSIA_DISTRICTS[default_state][0]) if MALAYSIA_DISTRICTS.get(default_state) else None
 
     # ensure summary exists (one sentence). If missing, make a short extractive sentence.
     summary = (guess.get("summary") or "").strip()
@@ -150,18 +154,23 @@ def clean_mentions_with_llm(limit: int = 50) -> Dict[str, int]:
         guess = _llm_clean(url or "", text, allowed_keywords, row.get("media_name")) or {}
         guess = _fill_defaults(url or "", guess, allowed_keywords, text)
 
-        update_payload = {
-            "media_name": guess["media_name"],
-            "keywords": [guess["keyword"]],
-            "location": {"state": guess["state"], "district": guess["district"]},
-        }
-        # Always ensure summary is present when requested; overwrite if empty
-        update_payload["summary"] = guess.get("summary", (row.get("summary") or "").strip())
-        try:
-            client.table("mentions").update(update_payload).eq("id", row["id"]).execute()
-            counts["updated"] += 1
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Failed to update cleaned mention %s: %s", row.get("id"), exc)
+        # Only update the fields that are empty
+        update_payload: Dict[str, object] = {}
+        if media_empty:
+            update_payload["media_name"] = guess["media_name"]
+        if keywords_empty:
+            update_payload["keywords"] = [guess["keyword"]]
+        if location_empty:
+            update_payload["location"] = {"state": guess["state"], "district": guess["district"]}
+        if summary_empty:
+            update_payload["summary"] = guess.get("summary", "")
+
+        if update_payload:
+            try:
+                client.table("mentions").update(update_payload).eq("id", row["id"]).execute()
+                counts["updated"] += 1
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Failed to update cleaned mention %s: %s", row.get("id"), exc)
 
     return counts
 

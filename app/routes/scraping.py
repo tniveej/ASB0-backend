@@ -104,13 +104,16 @@ def ingest_exa(max_results: int = 10, include_social: bool = True):
         location = pre.get("location")
         if not location:
             location = extract_location(title or "") or extract_location_with_llm(title or "", pre.get("summary") or "")
+        # final fallback to general Malaysia when no location resolved
+        if not location:
+            location = {"state": "Malaysia", "district": None}
 
         record = {
             "date": date_value,
             "data_source": "Web Search",
             "headline": pre.get("headline") or title or "",
             "summary": pre.get("summary") or None,
-            "image_url": None,
+            "image_url": pre.get("image_url") or None,
             "link": url,
             "media_type": "web article",
             "media_outlet": infer_outlet_from_link(url) if url else pre.get("media_name"),

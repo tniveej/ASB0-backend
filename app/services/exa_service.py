@@ -115,15 +115,33 @@ def enrich_with_exa_contents(records: List[Dict]) -> List[Dict]:
 
     url_to_text: Dict[str, str] = {}
     url_to_summary: Dict[str, str] = {}
+    url_to_image: Dict[str, str] = {}
     for item in raw_items:
         url = item.get("url") if isinstance(item, dict) else getattr(item, "url", None)
         summary = item.get("summary") if isinstance(item, dict) else getattr(item, "summary", None)
         text = item.get("text") if isinstance(item, dict) else getattr(item, "text", None)
+        # common image fields across possible SDK payloads
+        image = (
+            item.get("image_url") if isinstance(item, dict) else getattr(item, "image_url", None)
+        ) or (
+            item.get("imageUrl") if isinstance(item, dict) else getattr(item, "imageUrl", None)
+        ) or (
+            item.get("image") if isinstance(item, dict) else getattr(item, "image", None)
+        ) or (
+            item.get("thumbnail_url") if isinstance(item, dict) else getattr(item, "thumbnail_url", None)
+        ) or (
+            item.get("thumbnailUrl") if isinstance(item, dict) else getattr(item, "thumbnailUrl", None)
+        ) or (
+            item.get("thumbnail") if isinstance(item, dict) else getattr(item, "thumbnail", None)
+        )
+
         if url:
             if text:
                 url_to_text[url] = text
             if summary:
                 url_to_summary[url] = summary
+            if image:
+                url_to_image[url] = image
 
     allowed_keywords = [k["keyword"] for k in __import__("app.db.supabase_client", fromlist=["list_keywords"]).list_keywords()]  # lazy import to avoid cycle
 
@@ -146,6 +164,7 @@ def enrich_with_exa_contents(records: List[Dict]) -> List[Dict]:
                 "link": url,
                 "media_name": media_name,
                 "keywords": [best_kw],
+                "image_url": url_to_image.get(url),
                 "location": loc or None,
             }
         )
