@@ -23,15 +23,23 @@ def get_client() -> Client:
     return _supabase_client
 
 
-def upsert_health_mention(data: Dict[str, Any]) -> Dict[str, Any]:
+def upsert_mention(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Insert into mentions if no existing row with the same link. Return the row."""
     client = get_client()
-    resp = client.table("health_mentions").upsert(data, on_conflict="link").execute()
-    if resp.data is None:
-        raise RuntimeError(f"Upsert failed: {resp}")
-    return resp.data[0] if isinstance(resp.data, list) else resp.data
+    link = data.get("link")
+    if link:
+        existing = (
+            client.table("mentions").select("*").eq("link", link).limit(1).execute()
+        )
+        if existing.data:
+            return existing.data[0]
+    resp = client.table("mentions").insert(data).execute()
+    if not resp.data:
+        raise RuntimeError("Insert failed")
+    return resp.data[0]
 
 
-def list_health_mentions(
+def list_mentions(
     *,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -42,7 +50,7 @@ def list_health_mentions(
     page_size: int = 20,
 ) -> Tuple[List[Dict[str, Any]], int]:
     client = get_client()
-    query = client.table("health_mentions").select("*")
+    query = client.table("mentions").select("*")
 
     if start_date:
         query = query.gte("date", start_date)
@@ -65,7 +73,7 @@ def list_health_mentions(
         return [], 0
 
     # Get total count with a separate call due to range applied
-    count_query = client.table("health_mentions").select("id", count="exact")
+    count_query = client.table("mentions").select("id", count="exact")
     if start_date:
         count_query = count_query.gte("date", start_date)
     if end_date:
@@ -82,22 +90,17 @@ def list_health_mentions(
     return resp.data, total
 
 
-def update_health_mention_status(mention_id: str, status: str) -> Dict[str, Any]:
+def update_mention_status(mention_id: str, status: str) -> Dict[str, Any]:
     client = get_client()
-    resp = (
-        client.table("health_mentions")
-        .update({"status": status})
-        .eq("id", mention_id)
-        .execute()
-    )
+    resp = client.table("mentions").update({"status": status}).eq("id", mention_id).execute()
     if not resp.data:
         raise RuntimeError("Mention not found or update failed")
     return resp.data[0]
 
 
-def add_keyword(keyword: str) -> Dict[str, Any]:
+def add_keyword_manager(entry: Dict[str, Any]) -> Dict[str, Any]:
     client = get_client()
-    resp = client.table("keywords").upsert({"keyword": keyword}).execute()
+    resp = client.table("keyword_manager").insert(entry).execute()
     if not resp.data:
         raise RuntimeError("Keyword insert failed")
     return resp.data[0]
@@ -105,7 +108,37 @@ def add_keyword(keyword: str) -> Dict[str, Any]:
 
 def list_keywords() -> List[Dict[str, Any]]:
     client = get_client()
-    resp = client.table("keywords").select("*").eq("is_active", True).execute()
+    resp = client.table("keyword_manager").select("*").eq("enabled", True).execute()
     return resp.data or []
+
+
+def find_keyword(keyword: str) -> Optional[Dict[str, Any]]:
+    """Find keyword case-insensitively in keyword_manager."""
+    client = get_client()
+    resp = (
+        client.table("keyword_manager")
+        .select("*")
+        .ilike("keyword", keyword)
+        .limit(1)
+        .execute()
+    )
+    return resp.data[0] if resp.data else None
+
+
+def disable_keyword(keyword_id: str) -> Dict[str, Any]:
+    client = get_client()
+    resp = (
+        client.table("keyword_manager").update({"enabled": False}).eq("id", keyword_id).execute()
+    )
+    if not resp.data:
+        raise RuntimeError("Keyword not found or update failed")
+    return resp.data[0]
+
+
+def delete_keyword(keyword_id: str) -> Dict[str, Any]:
+    client = get_client()
+    resp = client.table("keyword_manager").delete().eq("id", keyword_id).execute()
+    # Some PostgREST setups may not return deleted rows; return minimal info
+    return resp.data[0] if resp.data else {"id": keyword_id, "deleted": True}
 
 

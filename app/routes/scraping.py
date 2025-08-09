@@ -5,8 +5,9 @@ from typing import List
 from fastapi import APIRouter
 
 from app.config import get_settings
-from app.db.supabase_client import list_keywords, upsert_health_mention
+from app.db.supabase_client import list_keywords, upsert_mention
 from app.scrapers.rss_scraper import fetch_rss_entries
+from app.scrapers.location_extractor import extract_location
 
 
 logger = logging.getLogger(__name__)
@@ -39,10 +40,15 @@ def scrape_news():
                     item.get("published_date") or datetime.utcnow().date().isoformat()
                 )
 
+                # Extract location from title + summary
+                location = extract_location(
+                    " ".join([item.get("title") or "", item.get("summary") or ""])
+                )
+
                 record = {
                     "date": date_value,
                     "data_source": "News Outlet",
-                    "headline": item.get("title"),
+                    "headline": item.get("title") or "",
                     "summary": item.get("summary"),
                     "image_url": item.get("image_url"),
                     "link": item.get("link"),
@@ -52,9 +58,10 @@ def scrape_news():
                     "status": "unverified",
                     "keywords": matched_keywords,
                     "engagement": 0,
+                    "location": location,
                 }
                 try:
-                    inserted_item = upsert_health_mention(record)
+                    inserted_item = upsert_mention(record)
                     inserted.append(inserted_item)
                 except Exception as exc:  # noqa: BLE001
                     logger.warning("Failed to upsert %s: %s", record.get("link"), exc)

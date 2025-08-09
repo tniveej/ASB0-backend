@@ -22,6 +22,7 @@ class SocialMediaIngest(BaseModel):
     media_name: Optional[str] = None
     keywords: Optional[List[str]] = None
     engagement: Optional[int] = 0
+    location_hint: Optional[str] = None
 
 
 class HealthMention(BaseModel):
@@ -38,6 +39,7 @@ class HealthMention(BaseModel):
     status: Optional[str]
     keywords: Optional[List[str]]
     engagement: Optional[int]
+    location: Optional[dict]
 
 
 class MentionFilters(BaseModel):

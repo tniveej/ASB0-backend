@@ -24,4 +24,10 @@ CREATE TABLE IF NOT EXISTS keywords (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
+-- Extend existing public.mentions (if you already use that table in Supabase)
+-- Safe to run multiple times
+ALTER TABLE IF EXISTS mentions
+ADD COLUMN IF NOT EXISTS location JSONB;
+
+
 

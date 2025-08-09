@@ -3,8 +3,8 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
 
 from app.db.supabase_client import (
-    list_health_mentions,
-    update_health_mention_status,
+    list_mentions,
+    update_mention_status,
 )
 from app.models.schemas import StatusUpdate
 
@@ -26,7 +26,7 @@ def get_health_mentions(
     keyword_list = (
         [k.strip() for k in keywords.split(",") if k.strip()] if keywords else None
     )
-    items, total = list_health_mentions(
+    items, total = list_mentions(
         start_date=start_date,
         end_date=end_date,
         data_source=data_source,
@@ -41,7 +41,7 @@ def get_health_mentions(
 @router.put("/{mention_id}/status")
 def put_health_mention_status(mention_id: str, payload: StatusUpdate):
     try:
-        return update_health_mention_status(mention_id, payload.status)
+        return update_mention_status(mention_id, payload.status)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
